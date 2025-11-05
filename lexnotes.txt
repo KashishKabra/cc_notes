@@ -1,0 +1,570 @@
+EXPERIMENT 2
+-----------------------------------------------------------------------
+%{
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+int comments = 0, keywords = 0, identifiers = 0, words = 0;
+int lines = 0, spaces = 0, capitals = 0, smalls = 0, specials = 0;
+
+// C language keywords
+char *key[] = {
+    "auto","break","case","char","continue","default","do","double","else",
+    "float","for","goto","if","int","long","register","return","switch","void","while"
+};
+
+int isKeyword(char *word) {
+    for(int i=0;i<32;i++) {
+        if(strcmp(word, key[i])==0)
+            return 1;
+    }
+    return 0;
+}
+%}
+
+%%
+"//".*                                   { comments++; }
+"/*"([^*]|\*+[^*/])*"*"+"/"             { comments++; }
+[a-zA-Z_][a-zA-Z0-9_]*                  {
+                                            words++;
+                                            if(isKeyword(yytext))
+                                                keywords++;
+                                            else
+                                                identifiers++;
+                                        }
+[A-Z]                                   { capitals++; }
+[a-z]                                   { smalls++; }
+[^a-zA-Z0-9 \t\n]                       { specials++; }
+[ ]                                     { spaces++; }
+\n                                      { lines++; }
+.                                       ;
+%%
+
+int main() {
+    yylex();
+    printf("Comments          : %d\n", comments);
+    printf("Keywords          : %d\n", keywords);
+    printf("Identifiers       : %d\n", identifiers);
+    printf("Words             : %d\n", words);
+    printf("Lines             : %d\n", lines);
+    printf("Spaces            : %d\n", spaces);
+    printf("Capital Letters   : %d\n", capitals);
+    printf("Small Letters     : %d\n", smalls);
+    printf("Special Characters: %d\n", specials);
+    return 0;
+}
+
+int yywrap(){
+    return 1;
+}
+
+--------------------------------------------------------------------------------------
+
+EXPERIMENT 3
+
+%{
+#include <stdio.h>
+#include <string.h>
+
+int count = 0;               // counter for word frequency
+char target[50];             // word to search
+%}
+
+
+%%
+[a-zA-Z]+   {
+                if (strcmp(yytext, target) == 0)
+                    count++;
+             }
+.|\n         ;
+%%
+
+int main() {
+    printf("Enter the word to count: ");
+    scanf("%s", target);
+
+    printf("Enter text (Ctrl+D to end input):\n");
+    yylex();
+
+    printf("\nFrequency of '%s' = %d\n", target, count);
+    return 0;
+}
+int yywrap(){
+    return 1;
+}
+
+-------------------------------------------------------------------
+Q] Count the number of words starting with ‘A’ OR 'a'
+
+%{
+#include <stdio.h>
+int count = 0;
+%}
+
+%%
+[aA][a-zA-Z]*    { count++; }     
+.|\n            ;                
+%%
+
+int main() {
+    printf("Counting words starting with 'A' and 'a'-\n");
+    yylex();
+    printf("Total words starting with 'A' = %d\n", count);
+    return 0;
+}
+
+int yywrap(){
+    return 1;
+}
+
+---------------------------------------------------------------
+
+%{
+#include <stdio.h>
+int count = 0;
+%}
+
+%%
+[aA][a-zA-Z]*[aA]    { count++; }     
+.|\n                 ;               
+%%
+
+int main() {
+    printf("Counting words beginning and ending with 'a' or 'A'--\n");
+    yylex();
+    printf("Total words beginning and ending with 'a'or 'A' = %d\n", count);
+    return 0;
+}
+
+int yywrap(){
+    return 1;
+}
+
+-------------------------------------------------------------
+
+Convert lowercase to uppercase and vice versa
+
+%{
+#include <stdio.h>
+%}
+
+%%
+[a-z]   { printf("%c", yytext[0] - 32); }  
+[A-Z]   { printf("%c", yytext[0] + 32); }  
+.|\n    { printf("%c", yytext[0]); }        
+%%
+
+int main() {
+    printf("Enter text (Ctrl+D to stop):\n");
+    yylex();
+    return 0;
+}
+
+int yywrap(){
+    return 1;
+}
+
+--------------------------------------
+
+Check whether character is uppercase, lowercase, or non-alphabetic
+
+%{
+#include <stdio.h>
+%}
+
+%%
+[A-Z]    { printf("%c : Uppercase Letter\n", yytext[0]); }
+[a-z]    { printf("%c : Lowercase Letter\n", yytext[0]); }
+[^a-zA-Z] { printf("%c : Non-alphabetic Character\n", yytext[0]); }
+%%
+
+int main() {
+    printf("Enter characters (Ctrl+D to end):\n");
+    yylex();
+    return 0;
+}
+
+int yywrap(){
+    return 1;
+}
+
+----------------------------------------------------------------
+Q] Case Conversion (Lower ↔ Upper) using File Handling
+
+%{
+#include <stdio.h>
+FILE *fin;   
+%}
+
+%%
+[a-z]   { printf("%c", yytext[0] - 32); }   
+[A-Z]   { printf("%c", yytext[0] + 32); }   
+.|\n    { printf("%c", yytext[0]); }        /* print other characters as-is */
+%%
+
+int main() {
+    fin = fopen("input.txt", "r");  
+
+    if (!fin) {
+        printf("Error opening file!\n");
+        return 1;
+    }
+
+    yyin = fin;     
+    yylex();        
+
+    fclose(fin);
+    return 0;
+}
+
+int yywrap(){
+    return 1;
+}
+
+----------------------------------------------------------------
+Q] Count lowercase and uppercase characters
+
+%{
+#include <stdio.h>
+int upper = 0, lower = 0;
+%}
+
+%%
+[A-Z]   { upper++; }
+[a-z]   { lower++; }
+.|\n    ;
+%%
+
+int main() {
+    yylex();
+    printf("Uppercase Letters: %d\n", upper);
+    printf("Lowercase Letters: %d\n", lower);
+    return 0;
+}
+
+int yywrap(){
+    return 1;
+}
+
+----------------------------------------------------------------
+Q] DECIMAL TO BINARY 
+
+%{
+#include <stdio.h>
+#include <stdlib.h>
+
+void decToBin(int n) {
+    if (n == 0) {
+        printf("0");
+        return;
+    }
+
+    int bin[32], i = 0;
+
+    while (n > 0) {
+        bin[i] = n % 2;
+        n = n / 2;
+        i++;
+    }
+    for (int j = i - 1; j >= 0; j--) {
+        printf("%d", bin[j]);
+    }
+}
+%}
+
+%%
+
+[0-9]+ {
+    	int num = atoi(yytext);
+    	printf("Binary: ");
+    	decToBin(num);
+    	printf("\n");
+}
+.|\n  ;
+%%
+
+int main() {
+    printf("Enter a decimal number:\n");
+    yylex();
+    return 0;
+}
+
+int yywrap(){
+    return 1;
+}
+
+----------------------------------------------------------------
+Q] Decimal to hexadecimal 
+
+%{
+#include <stdio.h>
+#include <stdlib.h>
+%}
+
+%%
+[0-9]+   {
+              int num = atoi(yytext);                      
+              printf("Decimal: %s → Hexadecimal: %X\n",yytext, num);
+          }
+
+[ \t\n]+  ;     
+.         ;    
+
+%%
+
+int main() {
+    printf("Enter decimal numbers (Ctrl+D to stop):\n");
+    yylex();   
+    return 0;
+}
+
+int yywrap(){
+    return 1;
+}
+
+void decToHex(int n) {
+    char hex[20];
+    int i = 0;
+
+    while (n != 0) {
+        int rem = n % 16;
+        if (rem < 10)
+            hex[i++] = rem + '0';
+        else
+            hex[i++] = rem - 10 + 'A';
+        n /= 16;
+    }
+
+    if (i == 0)
+        printf("0");
+    else {
+        for (int j = i - 1; j >= 0; j--)
+            printf("%c", hex[j]);
+    }
+}
+----------------------------------------------------------------
+Q] BINARY TO DECIMAL 
+
+%{
+#include <stdio.h>
+#include <stdlib.h>
+%}
+
+%%
+
+[01]+   {
+              int bin = atoi(yytext);
+              int dec = 0, base = 1, rem;
+
+              while (bin > 0) {
+                  rem = bin % 10;
+                  dec = dec + rem * base;
+                  bin = bin / 10;
+                  base = base * 2;
+              }
+              printf("Binary: %s → Decimal: %d\n", yytext, dec);
+          }
+
+[ \t\n]+ ;
+.        ;
+%%
+
+int main() {
+    printf("Enter binary numbers (Ctrl+D to stop):\n");
+    yylex();
+    return 0;
+}
+int yywrap(){
+    return 1;
+}
+
+----------------------------------------------------------------
+Q] BINARY TO HEXA 
+
+%{
+#include <stdio.h>
+#include <stdlib.h>
+%}
+
+%%
+[01]+   {
+              int bin = atoi(yytext);
+              int dec = 0, base = 1, rem;
+              while (bin > 0) {
+                  rem = bin % 10;
+                  dec = dec + rem * base;
+                  bin = bin / 10;
+                  base = base * 2;
+              }
+              printf("Binary: %s → Hexadecimal: %X\n", yytext, dec);
+          }
+
+[ \t\n]+ ;     
+.        ;      
+
+%%
+
+int main() {
+    printf("Enter binary numbers (Ctrl+D to stop):\n");
+    yylex();
+    return 0;
+}
+int yywrap(){
+    return 1;
+}
+
+----------------------------------------------------------------
+Q] HEXA TO DECIMAL 
+
+%{
+#include <stdio.h>
+#include <stdlib.h>
+
+%}
+
+%%
+[0-9A-Fa-f]+   {
+                    int dec = 0;
+                    for (int i = 0; yytext[i] != '\0'; i++) {
+                        char ch = yytext[i];
+                        int value;
+
+                        if (ch >= '0' && ch <= '9')
+                            value = ch - '0';
+                        else if (ch >= 'A' && ch <= 'F')
+                            value = ch - 'A' + 10;
+                        else if (ch >= 'a' && ch <= 'f')
+                            value = ch - 'a' + 10;
+
+                        dec = dec * 16 + value;
+                    }
+                    printf("Hexadecimal: %s → Decimal: %d\n", yytext, dec);
+                }
+
+[ \t\n]+ ;    
+.        ;    
+%%
+
+int main() {
+    printf("Enter hexadecimal numbers (Ctrl+D to stop):\n");
+    yylex();
+    return 0;
+}
+int yywrap(){
+    return 1;
+}
+
+----------------------------------------------------------------
+Q] HEXA TO BINARY 
+%{
+#include <stdio.h>
+#include <stdlib.h>
+%}
+
+%%
+[0-9A-Fa-f]+   {
+                    int dec = 0;
+                    for (int i = 0; yytext[i] != '\0'; i++) {
+                        char ch = yytext[i];
+                        int value;
+
+                        if (ch >= '0' && ch <= '9')
+                            value = ch - '0';
+                        else if (ch >= 'A' && ch <= 'F')
+                            value = ch - 'A' + 10;
+                        else if (ch >= 'a' && ch <= 'f')
+                            value = ch - 'a' + 10;
+
+                        dec = dec * 16 + value;
+                    }
+
+                    // Step 2: Convert Decimal → Binary manually
+                    int bin[32], i = 0;
+                    if (dec == 0)
+                        printf("Binary: 0");
+                    else {
+                        while (dec > 0) {
+                            bin[i++] = dec % 2;
+                            dec /= 2;
+                        }
+                        printf("Binary: ");
+                        for (int j = i - 1; j >= 0; j--)
+                            printf("%d", bin[j]);
+                    }
+
+                    printf("\n");
+                }
+
+[ \t\n]+ ;    
+.        ;    
+
+%%
+int main() {
+    printf("Enter hexadecimal numbers (Ctrl+D to stop):\n");
+    yylex();
+    return 0;
+}
+int yywrap(){
+    return 1;
+}
+
+----------------------------------------------------------------
+Q] ENDING WITH COM 
+
+%{
+#include <stdio.h>
+int count = 0;
+%}
+
+%%
+.*com\n    { count++; }      
+.*\n       ;                 
+%%
+
+int main() {
+    printf("Enter text (Ctrl+D to stop):\n");
+    yylex();
+    printf("\nNumber of lines ending with 'com' = %d\n", count);
+    return 0;
+}
+int yywrap(){
+    return 1;
+}
+
+----------------------------------------------------------------
+Q] URL ENDING WITH ORG
+
+%{
+#include <stdio.h>
+int count = 0;
+%}
+
+%%
+(http|https)://[a-zA-Z0-9./_-]*\.org(\n|$)   { count++; }
+[ \t]+     ;     
+.|\n       ;     
+
+%%
+
+int main() {
+    printf("Enter URLs (Ctrl+D to stop):\n");
+    yylex();
+    printf("\nNumber of URLs ending with .org: %d\n", count);
+    return 0;
+}
+int yywrap(){
+    return 1;
+}
+
+----------------------------------------------------------------
+
+lex file.l
+gcc lex.yy.c -o file
+./file 
+
+lex file.l
+gcc lex.yy.c -o file
+./file < input.txt
+
+-------------------------

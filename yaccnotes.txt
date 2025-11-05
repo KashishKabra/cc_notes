@@ -1,0 +1,772 @@
+EXPERIMENT 7 ONWARDS 
+
+lex postfix.l
+yacc -d postfix.y
+gcc lex.yy.c y.tab.c -o postfix
+./postfix
+
+-----------------------
+q]YACC Program for Postfix Expression Evaluation
+
+LEX
+-------
+%{
+#include "y.tab.h"  
+%}
+
+%%
+
+[0-9]+      { yylval = atoi(yytext); return NUM; } 
+[\n]        { return '\n'; }                         
+[ \t]+      ;                                       
+.           { return yytext[0]; }                
+
+%%
+int yywrap() { 
+    return 1;   
+} 
+
+-----------
+YACC
+-----------
+
+%{
+#include <stdio.h>
+#include <stdlib.h>
+%}
+
+%token NUM   
+
+%%
+S : E '\n'    { 
+                  printf("Result = %d\n", $1); 
+                  return 0; 
+              }
+  ;
+
+E : E E '+'   { $$ = $1 + $2; }
+  | E E '-'   { $$ = $1 - $2; }
+  | E E '*'   { $$ = $1 * $2; }
+  | E E '/'   { $$ = $1 / $2; }
+  | NUM       { $$ = $1; }
+  ;
+
+%%
+
+int main() {
+    printf("Enter a postfix expression:\n");
+    yyparse();  
+    return 0;
+}
+
+int yyerror(const char *s) {
+    printf("Error: %s\n", s);
+    return 0;
+}
+
+-----------------------------------------------------------
+Q] INFIX TO POSTFIX
+
+LEX
+---------
+%{
+#include "y.tab.h"
+%}
+
+%%
+
+[0-9A-Za-z]+    { yylval = yytext[0]; return ID; }
+[+\-*/^()]	{ return yytext[0]; } 
+[ \t\n]+        ;                
+.               ;
+
+%%
+
+int yywrap() { return 1; }
+
+--------------
+YACC
+---------------
+
+%{
+#include <stdio.h>
+%}
+
+%token ID       
+
+%left '+' '-'           
+%left '*' '/'    
+%right '^'               
+
+%%
+
+E : E '+' E     { printf("+ "); }
+  | E '-' E     { printf("- "); }
+  | E '*' E     { printf("* "); }
+  | E '/' E     { printf("/ "); }
+  | E '^' E     { printf("^ "); }
+  | '(' E ')'   { }
+  | ID          { printf("%c ", $1); }     
+  ;
+
+%%
+
+int main() {
+    printf("Enter an infix expression:\n");
+    yyparse();
+    printf("\n");
+    return 0;
+}
+
+int yyerror() {
+    printf("Invalid Expression\n");
+    return 0;
+}
+
+----------------------------------------------------
+EXPERIMENT 8
+
+YACC Program — Desk Calculator (with error recovery)
+
+LEX
+------------
+
+%{
+#include "y.tab.h"     
+%}
+
+%%
+[0-9]+        { yylval = atoi(yytext); return NUMBER; }   
+[+\-*/()=]    { return yytext[0]; }         
+\n             { return '\n'; }               
+[ \t]+        ;                                           
+.             { return yytext[0]; }                   
+%%
+
+int yywrap() { return 1; }
+
+----------
+YACC
+----------
+
+%{
+#include <stdio.h>
+#include <stdlib.h>
+%}
+
+%token NUMBER     
+
+%left '+' '-'    
+%left '*' '/'        
+%right UMINUS        
+
+%%
+
+S : E '\n'          { printf("Result = %d\n", $1); }
+  | error '\n'      { printf("Syntax Error! Try again.\n"); yyerrok; }
+  ;
+
+E : E '+' E         { $$ = $1 + $3; }
+  | E '-' E         { $$ = $1 - $3; }
+  | E '*' E         { $$ = $1 * $3; }
+  | E '/' E         { $$ = $1 / $3; }
+  | '-' E %prec UMINUS { $$ = -$2; }     
+  | '(' E ')'       { $$ = $2; }       
+  | NUMBER          { $$ = $1; }
+  ;
+
+%%
+
+int main() {
+    printf("Enter expression (Ctrl+D to exit):\n");
+    yyparse();
+}
+
+int yyerror() {
+    printf("Invalid input.\n");
+    return 0;
+}
+
+------------------
+
+q] Evaluates arithmetic expressions (with parentheses)
+
+LEX
+------------
+
+%{
+#include "y.tab.h"     
+%}
+
+%%
+[0-9]+        { yylval = atoi(yytext); return NUMBER; }   
+[+\-*/()=]    { return yytext[0]; }         
+\n             { return '\n'; }               
+[ \t]+        ;                                           
+.             { return yytext[0]; }                   
+%%
+
+int yywrap() { return 1; }
+
+-------------
+YACC
+-------------
+%{
+#include <stdio.h>
+#include <stdlib.h>
+%}
+
+%token NUMBER
+
+%left '+' '-'
+%left '*' '/'
+%right UMINUS        
+
+%%
+
+S : E '\n'        { printf("Result = %d\n", $1); }
+  ;
+
+E : E '+' E       { $$ = $1 + $3; }         
+  | E '-' E       { $$ = $1 - $3; }    
+  | E '*' E       { $$ = $1 * $3; } 
+  | E '/' E       { $$ = $1 / $3; }     
+  | '-' E %prec UMINUS { $$ = -$2; }    
+  | '(' E ')'     { $$ = $2; }          
+  | NUMBER        { $$ = $1; }           
+  ;
+
+%%
+
+int main() {
+    printf("Enter arithmetic expression:\n");
+    yyparse();
+    return 0;
+}
+
+int yyerror(const char *s) {
+    printf("Error: %s\n", s);
+    return 0;
+}
+
+---------------------------------------------------------------
+
+EXPERIMENT 9
+
+Q]FOR LOOP PARSER
+
+LEX
+---------
+%{
+#include "y.tab.h"
+#include <stdlib.h>
+%}
+
+%%
+
+"for"               { return FOR; }
+"("                 { return '('; }
+")"                 { return ')'; }
+";"                 { return ';'; }
+( "<=" | ">=" | "==" | "!=" | "<" | ">" )   { return RELOP; }
+"="                 { return ASSIGN; }
+[+\-*/]             { return ARITH; }
+[A-Za-z_][A-Za-z0-9_]*  { return ID; }
+[0-9]+              { yylval = atoi(yytext); return NUMBER; }
+[ \t\n]+            ;
+.                   ;
+
+%%
+
+int yywrap() { return 1; }
+------------
+
+YACC
+
+---------
+%{
+#include <stdio.h>
+%}
+
+%token FOR ID NUMBER
+%token ASSIGN ARITH RELOP
+
+%%
+
+S : FOR '(' INIT ';' CONDITION ';' INCREMENT ')' { printf("\nVALID FOR LOOP\n"); }
+  ;
+
+INIT : ID ASSIGN NUMBER
+     | ID ASSIGN ID
+     ;
+
+CONDITION : ID RELOP NUMBER
+          | ID RELOP ID
+          ;
+
+INCREMENT : ID ASSIGN ID ARITH NUMBER
+          | ID ASSIGN ID
+          ;
+
+%%
+
+int main() {
+    printf("Enter FOR loop statement:\n");
+    yyparse();
+}
+
+int yyerror(const char *s) {
+    printf("\nINVALID FOR LOOP\n");
+    return 0;
+}
+
+-----------------------------------------------------
+
+Q]WHILE LOOP
+
+LEX
+-------
+%{
+#include "y.tab.h"
+%}
+
+%%
+"while"         { return WHILE; }
+"("             { return '('; }
+")"             { return ')'; }
+"<="|">="|"=="|"!="|"<"|">"   { return RELOP; }
+"="             { return ASSIGN; }
+[A-Za-z_][A-Za-z0-9_]*  { return ID; }
+[0-9]+          { return NUMBER; }
+";"             { return ';'; }
+[ \t\n]+        ;
+.               ;
+%%
+
+int yywrap(){ return 1; }
+
+------------
+YACC
+-----------
+%{
+#include <stdio.h>
+%}
+
+%token WHILE ID NUMBER ASSIGN RELOP
+
+%%
+S : WHILE '(' CONDITION ')' ACTION   { printf("VALID WHILE\n"); }
+  ;
+
+CONDITION : ID RELOP ID
+          | ID RELOP NUMBER
+          ;
+
+ACTION : ID ASSIGN ID
+       | ID ASSIGN NUMBER
+       ;
+%%
+
+int main(){ yyparse(); }
+int yyerror(){ printf("INVALID WHILE\n"); return 0; }
+-------------------------------------------------------
+
+Q]SWITCH CASE
+
+LEX
+---------
+%{
+#include "y.tab.h"
+%}
+
+%%
+
+"switch"        { return SWITCH; }
+"case"          { return CASE; }
+"default"       { return DEFAULT; }
+"break"         { return BREAK; }
+":"             { return ':'; }
+"{"             { return '{'; }
+"}"             { return '}'; }
+";"             { return ';'; }
+
+[A-Za-z_][A-Za-z0-9_]*    { return ID; }
+[0-9]+                    { return NUMBER; }
+[ \t\n]+                  ;
+.                         ;
+
+%%
+
+int yywrap(){ return 1; }
+
+----------------------
+YACC
+------------
+%{
+#include <stdio.h>
+%}
+
+%token SWITCH CASE DEFAULT BREAK NUMBER ID
+
+%%
+
+S : SWITCH '(' ID ')' '{' CASES '}'   { printf("VALID SWITCH\n"); }
+  ;
+
+CASES : CASE NUMBER ':' ID ';' BREAK ';' CASES
+      | DEFAULT ':' ID ';'
+      ;
+
+%%
+
+int main() {
+    yyparse();
+}
+
+int yyerror() {
+    printf("INVALID SWITCH\n");
+    return 0;
+}
+------------------------------------------------
+
+Q]if then 
+
+LEX
+----------
+%{
+#include "y.tab.h"
+%}
+
+%%
+
+"if"        { return IF; }
+"then"      { return THEN; }
+"<="|">="|"=="|"!="|"<"|">"   { return RELOP; }
+[A-Za-z_][A-Za-z0-9_]*         { return ID; }
+[0-9]+                         { return NUMBER; }
+";"                            { return ';'; }
+[ \t\n]+                       ;
+.                              ;
+
+%%
+
+int yywrap(){ return 1; }
+
+------------------
+
+YACC
+-----------------
+%{
+#include <stdio.h>
+%}
+
+%token IF THEN ID NUMBER RELOP
+
+%%
+S : IF CONDITION THEN ACTION   { printf("VALID IF-THEN\n"); }
+  ;
+
+CONDITION : ID RELOP ID
+          | ID RELOP NUMBER
+          ;
+
+ACTION : ID ';'
+       | NUMBER ';'
+       ;
+%%
+
+int main() { yyparse(); }
+
+int yyerror() {
+    printf("INVALID IF-THEN\n");
+    return 0;
+}
+
+--------------------------------------
+Q] IF THEN ELSE
+
+LEX
+-----------
+%{
+#include "y.tab.h"
+%}
+
+%%
+"if"        { return IF; }
+"then"      { return THEN; }
+"else"      { return ELSE; }
+"<="|">="|"=="|"!="|"<"|">"   { return RELOP; }
+[A-Za-z_][A-Za-z0-9_]*         { return ID; }
+[0-9]+                         { return NUMBER; }
+";"                            { return ';'; }
+[ \t\n]+                       ;
+.                              ;
+%%
+
+int yywrap(){ return 1; }
+
+--------------
+YACC
+--------------
+%{
+#include <stdio.h>
+%}
+
+%token IF THEN ELSE ID NUMBER RELOP
+
+%%
+S : IF CONDITION THEN ACTION ELSE ACTION   { printf("VALID IF-THEN-ELSE\n"); }
+  ;
+
+CONDITION : ID RELOP ID
+          | ID RELOP NUMBER
+          ;
+
+ACTION : ID ';'
+       | NUMBER ';'
+       ;
+%%
+
+int main() { yyparse(); }
+
+int yyerror() {
+    printf("INVALID IF-THEN-ELSE\n");
+    return 0;
+}
+
+-----------------------------------------------
+EXPEIMENT 10 
+
+YACC PROGRAM TO IC GENRATION OF ARTHMEIC EXPRESSIONS 
+
+LEX
+----------------
+%{
+#include "y.tab.h"
+%}
+
+%%
+[a-zA-Z]      { return ID; }
+[0-9]+        { return NUM; }
+[\+\-\*/]     { return yytext[0]; }
+[ \t\n]+      ;
+.             ;
+%%
+int yywrap() { return 1; }
+
+-----------
+YACC
+----------
+%{
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+int t = 1;               
+char tempNames[50][10];  
+%}
+
+%token ID NUM
+%left '+' '-'
+%left '*' '/'
+
+%%
+E : E '+' E   {
+                  printf("t%d = %s + %s\n", t, tempNames[$1], tempNames[$3]);
+                  sprintf(tempNames[t], "t%d", t);
+                  $$ = t++;
+              }
+
+  | E '-' E   {
+                  printf("t%d = %s - %s\n", t, tempNames[$1], tempNames[$3]);
+                  sprintf(tempNames[t], "t%d", t);
+                  $$ = t++;
+              }
+
+  | E '*' E   {
+                  printf("t%d = %s * %s\n", t, tempNames[$1], tempNames[$3]);
+                  sprintf(tempNames[t], "t%d", t);
+                  $$ = t++;
+              }
+
+  | E '/' E   {
+                  printf("t%d = %s / %s\n", t, tempNames[$1], tempNames[$3]);
+                  sprintf(tempNames[t], "t%d", t);
+                  $$ = t++;
+              }
+
+  | ID        {
+                  strcpy(tempNames[t], yytext);   
+                  $$ = t++;
+              }
+
+  | NUM       {
+                  strcpy(tempNames[t], yytext);   
+                  $$ = t++;
+              }
+  ;
+
+%%
+int main() {
+    printf("Enter expression: ");
+    yyparse();
+    return 0;
+}
+int yyerror() { return 0; }
+
+------------------
+
+IC GENERATION (WITH PARENTHESIS)
+
+LEX
+---------
+%{
+#include "y.tab.h"
+%}
+
+%%
+[a-zA-Z]      { return ID; }
+[0-9]+        { return NUM; }
+"("           { return '('; }
+")"           { return ')'; }
+[\+\-\*/]     { return yytext[0]; }
+[ \t\n]+      ;
+.             ;
+%%
+
+int yywrap() { return 1; }
+
+---------------
+YACC
+--------------
+%{
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int t = 1;              
+char tempNames[50][10];
+%}
+
+%token ID NUM
+%left '+' '-'
+%left '*' '/'
+
+%%
+
+E : E '+' E   {
+                  printf("t%d = %s + %s\n", t, tempNames[$1], tempNames[$3]);
+                  sprintf(tempNames[t], "t%d", t);
+                  $$ = t++;
+              }
+
+  | E '-' E   {
+                  printf("t%d = %s - %s\n", t, tempNames[$1], tempNames[$3]);
+                  sprintf(tempNames[t], "t%d", t);
+                  $$ = t++;
+              }
+
+  | E '*' E   {
+                  printf("t%d = %s * %s\n", t, tempNames[$1], tempNames[$3]);
+                  sprintf(tempNames[t], "t%d", t);
+                  $$ = t++;
+              }
+
+  | E '/' E   {
+                  printf("t%d = %s / %s\n", t, tempNames[$1], tempNames[$3]);
+                  sprintf(tempNames[t], "t%d", t);
+                  $$ = t++;
+              }
+
+  | '(' E ')' { $$ = $2; }
+
+  | ID        {
+                  strcpy(tempNames[t], yytext);
+                  $$ = t++;
+              }
+
+  | NUM       {
+                  strcpy(tempNames[t], yytext);
+                  $$ = t++;
+              }
+  ;
+
+%%
+int main() {
+    printf("Enter expression: ");
+    yyparse();
+    return 0;
+}
+int yyerror() {
+    return 0;
+}
+
+
+------------------
+IC Generation — Programming Construct (IF / WHILE)
+
+LEX
+---------
+%{
+#include "y.tab.h"
+char relop[5];
+%}
+
+%%
+
+"if"        { return IF; }
+"while"     { return WHILE; }
+"<="|">="|"=="|"!="|"<"|">"  { strcpy(relop, yytext); return RELOP; }
+[a-zA-Z]     { return ID; }
+[0-9]+       { return NUM; }
+"("          { return '('; }
+")"          { return ')'; }
+";"          { return ';'; }
+[ \t\n]+     ;
+.            ;
+%%
+
+int yywrap() { return 1; }
+
+--------------
+YACC
+--------------
+%{
+#include <stdio.h>
+#include <string.h>
+
+int t = 1;
+int l = 1;
+char *operand[50];
+char relop[5];
+%}
+
+%token IF WHILE ID NUM RELOP
+
+%%
+S : IF '(' C ')' STMT
+      { printf("L%d:\n", l++); }
+
+  | WHILE '(' C ')' STMT
+      { printf("goto L%d\nL%d:\n", l-1, l); l++; }
+  ;
+
+C : ATOM RELOP ATOM
+      { printf("t%d = %s %s %s\n", t, operand[$1], relop, operand[$3]);
+        printf("if t%d goto L%d\n", t, l); t++; }
+  ;
+
+STMT : ATOM ';'
+      { printf("%s\n", operand[$1]); }
+    ;
+
+ATOM : ID  { operand[$$ = t++] = strdup(yytext); }
+     | NUM { operand[$$ = t++] = strdup(yytext); }
+     ;
+%%
+
+int main() {
+    printf("Enter IF/WHILE statement:\n");
+    yyparse();
+}
+int yyerror() { return 0; }
+
